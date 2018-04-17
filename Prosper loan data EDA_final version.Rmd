@@ -1,0 +1,1427 @@
+
+output: html_notebook
+
+Exploring Prospect Loan Data by VLAD LAUKHIN
+========================================================
+
+```{r   echo=FALSE, warning=FALSE,message=FALSE, packages}
+# Load all of the packages that you end up using in your analysis in this code
+# chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk. This
+# prevents the code from displaying in the knitted HTML output. You should set
+# echo=FALSE for all code chunks in your file, unless it makes sense for your
+# report to show the code that generated a particular plot.
+
+# The other parameters for "message" and "warning" should also be set to FALSE
+# for other code chunks once you have verified that each plot comes out as you
+# want it to. This will clean up the flow of your report.
+
+library(ggplot2)
+library(GGally)
+library(scales)
+library(lattice)
+library(MASS)
+library(memisc)
+library(gridExtra)
+library(rio)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(psych)
+library(Hmisc)
+
+
+```
+
+```{r   echo=FALSE, warning=FALSE, message=FALSE }
+# Set the working directory
+setwd('C:/Users/user/UDACITY NANO/R projects/FINAL Project')
+```
+
+```{r   echo=FALSE, warning=FALSE, Load_the_Data}
+# Load the Data
+lf <- read.csv("prosperLoanData.csv", check.names = FALSE)
+```
+
+>This report explores a dataset containing information on loans and payments
+for approximately 114,000 customers in USA.
+
+
+# Univariate Plots Section
+
+```{r echo=FALSE }
+# Look at dimensions
+dim(lf)
+```
+
+```{r echo=FALSE }
+#Take alook at names in the datat set 
+str(lf)
+```
+
+```{r echo=FALSE }
+# Take a look at the data stat distributions
+summary(lf)
+```
+
+>Our dataset consists of 81 variables, with almost 114,000 observations.
+
+```{r   echo=FALSE, warning=FALSE, Univariate_Plots}
+# Plot LoanOriginalAmount histogram with ggplot
+
+ggplot(aes(x=LoanOriginalAmount), data = lf)+ geom_histogram(binwidth = 1000)+
+  scale_x_continuous(breaks = seq(0,40000, 2500))
+```
+
+>Seems that most of the loans have the standard ammount increasing by $5000, 
+though we see big spike of loans around $4000 and $7000.
+
+```{r echo=FALSE, warning=FALSE }
+# Plot BorrowerState histogram with ggplot
+ggplot(aes(x=BorrowerState), data = lf)+ geom_histogram(stat = "count")+
+  labs(title="BorrowerState histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))+
+  scale_y_continuous(breaks=seq(0,15000,1000))
+```
+
+>Seems that majority of borrowers are from AZ, DE, NY and TX.
+
+
+```{r   echo=FALSE, warning=FALSE     }
+# Plot BorrowerRate histogram with ggplot
+ggplot(aes(x=BorrowerRate), data = lf)+ geom_histogram(binwidth = 0.0025)+
+  labs(title="BorrowerRate histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))+
+  scale_y_continuous(breaks=seq(0,15000,1000))+
+  scale_x_continuous(breaks = seq(0,0.4, 0.05))
+```
+
+>Hm, it seems that the highest quantity of loans were given away with 
+interest rate of around 0.32.
+
+
+```{r echo=FALSE , warning=FALSE    }
+# Plot Term histogram with ggplot
+ggplot(aes(x=Term), data = lf)+ geom_histogram(binwidth=10,stat = "count")+
+  labs(title="Term histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))+
+  scale_x_continuous(breaks = seq(0,60, 12))+
+  scale_y_continuous(breaks = seq(0,100000, 5000))
+```
+
+>All the loans are given for standard time of one, three, and five years, most of them 
+are open for three years (36 months).
+
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot LoanStatus histogram with ggplot
+ggplot(aes(x=LoanStatus), data = lf)+ geom_histogram(stat = "count")+
+  labs(title="LoanStatus histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))+
+  scale_y_continuous(breaks = seq(0,60000, 5000))
+
+```
+
+>Seems that there are lots of completed accounts as well as quite a bit of 
+past due, defaulted, and charded offs. 
+
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot IncomeRange histogram with ggplot
+ggplot(aes(x=IncomeRange), data = lf)+ geom_histogram(stat = "count")+
+  labs(title="IncomeRange histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))
+```
+
+>Most of the borrowers have the middle income rate of $25,000 to $50,000.
+
+
+```{r echo=FALSE, warning=FALSE }
+# Plot EmploymentStatus histogram with ggplot
+ggplot(aes(x=EmploymentStatus), data = lf)+ geom_histogram(stat = "count")+
+  labs(title="EmploymentStatus histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))+
+  scale_y_continuous(breaks = seq(0,70000, 5000))
+```
+
+>Most of them are Employed.
+
+
+```{r echo=FALSE, warning=FALSE }
+# Plot LoanMonthsSinceOrigination histogram with ggplot
+ggplot(aes(x=LoanMonthsSinceOrigination), data = lf)+ geom_histogram(binwidth = 1)+
+  scale_x_continuous(breaks= seq(0,100,2))+
+  labs(title="LoanMonthsSinceOrigination histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))
+```
+
+>As expected, most of the loans closing period is tied to the loan Term.
+Also, the highest quantities of loans tend to be closed before 12 month mark.
+Why this trimodal distribution don't line up with the plot of loan Terms? 
+As we saw that the majority of loans have a term of 36 months? It would be 
+interesting to look into timing between the loan is open and closed.
+There is a gap in the loan months between 54 and 62. I wonder what is causing this?
+
+```{r   echo=FALSE, warning=FALSE    }
+# Rename ProsperRating (Alpha) and ProsperRating (numeric) in data set as this  
+# naming will cause issues in future when addressing these columns
+names(lf)[names(lf) == 'ProsperRating (Alpha)'] <- 'ProsperRating_Alpha'
+names(lf)[names(lf) == 'ProsperRating (numeric)'] <- 'ProsperRating_numeric'
+```
+
+
+```{r   echo=FALSE, warning=FALSE    }
+# Plot ProsperRating_Alpha histogram with ggplot
+ggplot(aes(x=ProsperRating_Alpha), data = lf)+ geom_histogram(stat="count")+
+  labs(title="ProsperRating_Alpha histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))
+```
+
+>Here we can see the distribution of prosperity rates calculated by bank for 
+borrowers. We have the outlier of non given info in here that is about 1/4 
+of a data set.
+
+```{r echo=FALSE , warning=FALSE  }
+# Plot DebtToIncomeRatio histogram with ggplot
+ggplot(aes(x=DebtToIncomeRatio), data = lf)+ geom_histogram(binwidth = 0.01)+
+  labs(title="DebtToIncomeRatio histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r echo=FALSE , warning=FALSE  }
+# Plot DebtToIncomeRatio histogram with ggplot and log10 scale
+ggplot(aes(x=DebtToIncomeRatio), data = lf)+ geom_histogram(binwidth = 0.02)+
+  scale_x_log10(breaks=seq(0.01,1,0.1))+
+  labs(title="DebtToIncomeRatio histogram Log10")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))
+```
+
+>I transformed the long tail data to better understand the distribution of 
+DebtToIncomeRatio.The tranformed DebtToIncomeRatio. Distribution looks normal, 
+though a bit sqewed to the left. The DebtToIncomeRatio is peaking 
+around 0.21 with outlier at 0.41. Why is there a huge spike at 0.41? 
+
+
+```{r echo=FALSE , warning=FALSE  }
+# Plot EstimatedReturn histogram with ggplot
+ggplot(aes(x=EstimatedReturn), data = lf)+ geom_histogram(binwidth = 0.0025)+
+  scale_x_continuous(breaks = seq(-0.2,0.3, 0.05))+
+  labs(title="EstimatedReturn histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))
+```
+
+>Seems that there were 29084 rows removed that belong to customers whose loans
+were closed. This distribution looks normal even without transformations. Though,
+I think if the outliers will be removed this distribution will appear trimodal
+
+```{r echo=FALSE , warning=FALSE  }
+# Plot EstimatedLoss histogram with ggplot
+ggplot(aes(x=EstimatedLoss), data = lf)+ geom_histogram(binwidth = 0.0025)+
+  scale_x_continuous(breaks = seq(0,0.4, 0.02))+
+  labs(title="EstimatedLoss histogram")+
+  theme(axis.text.x=element_text(angle=90,vjust=1), plot.title = element_text(hjust = 0.5))
+```
+
+>We can see different situation with EstimamatedLoss. 
+Looks like this distribution is trimodal with peaks around 0.04, 0.11, and 0.14.
+It would be nice to know what is causing this..
+
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+>There are 113,937 loans in the dataset with 81 variables descripting loaners 
+Status, Credit rate, Income rate, Loan ammount, Loan interest, etc. 
+There are 20 Factor, 30 integer and 31 numeric variables. All the variable 
+explanations could be found [here](https://docs.google.com/spreadsheets/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit#gid=0) 
+
+>The Facor variables have following levels. 
+
+
+Variables    | Levels
+-----------  | -------------
+CreditGrade: | "A", "AA", "B", "C", "D", "E", "HR", "NC", and  "", which is not specified
+LoanStatus:  | "Cancelled", "Chargedoff", "Completed", "Current", "Defaulted", "FinalPaymentInProgress", "Past Due (>120 days)", "Past Due (1-15 days)", "Past Due (16-30 days)","Past Due (31-60 days)", "Past Due (61-90 days)", "Past Due (91-120 days)" 
+ProsperRating (Alpha): | "A", "AA", "B", "C", "D", "E", "HR" and  "", which is not specified
+EmploymentStatus:  | "Employed", "Full-time", "Not available", "Not employed", "Other", "Part-time", "Retired", "Self-employed" and  "" which is not specified
+IsBorrowerHomeowner: | "False","True"
+CurrentlyInGroup:  | "False","True" 
+IncomeRange: | "$0", "$1-24,999", "$100,000+", "$25,000-49,999", "$50,000-74,999", "$75,000-99,999", "Not displayed", "Not employed"
+IncomeVerifiable:  | "False","True"
+
+### Other Factor variables:
+
+Variables    | Levels
+-----------  | -------------
+ClosedDate: | Factor w/ 2803 levels - Date field that should be tranformed
+BorrowerState: | Factor w/ 52 levels - 51 State and non specified field
+Occupation: | Factor w/ 68 levels - Borrower occupation
+GroupKey: | Factor w/ 707 levels - The Key of the group of Borrowers membership
+ListingKey: | Factor w/ 113066 levels - Unique key for each listing
+ListingCreationDate: | Factor w/ 113064 levels - The date the listing was created.
+DateCreditPulled: | Factor w/ 112992 levels -The date the credit profile was pulled. 
+FirstRecordedCreditLine: | Factor w/ 11586 levels - The date the first credit line was opened. 
+LoanKey: | Factor w/ 113066 levels - Unique key for each loan 
+LoanOriginationDate: | Factor w/ 1873 levels -The date the loan was originated.
+LoanOriginationQuarter: | Factor w/ 33 levels -The quarter in which the loan was originated.
+MemberKey: | Factor w/ 90831 levels - Key that is associated with the borrower. 
+
+>There is Variable called ProsperRating (numeric). It is the same as ProsperRating (Alpha)
+though in numeric format. Both variables should be renamed avoiding parentheses 
+as it might cause an error in future. Also, numeric variable ProsperRating (numeric)
+should be transformed to Factor.
+
+
+### What is/are the main feature(s) of interest in your dataset?
+>I think that the most interesting ones are income range of the borrowers, State.
+Loan ammount is interesting as well as we can trace the mostly common loan ammounts.
+As well as the BorrowerRate and how it is affecting the EstimatedLoss and EstimatedGain. 
+
+### What other features in the dataset do you think will help support your \investigation into your feature(s) of interest?
+
+>The loan ammount and the interest rate are contributing to the timing of return.
+It would be interesting to trace the relationship between those two and look how 
+it will affect reimbursment time from day one. What states are having the most 
+of postdue or unpaid loans? What are the income rates of those who postdue? 
+
+### Did you create any new variables from existing variables in the dataset?
+
+
+>1. Renamed ProsperRating (Alpha) and ProsperRating (numeric) columns and changed
+ProsperRating (numeric) variable factor. Also I had to rename all the entries with 
+no info "" to "N" as non specified.
+2. There has been new variable __Income__ created that used reduced number of
+factors from IncomeRange. They are   "$1-24,999", "$25,000-49,999", "$50,000-74,999", 
+"$75,000-99,999","$100,000+", and "$0" that combined "$0","Not displayed" and  "Not employed".
+3. Also there was new variable __StatusofLoan__ cretated that used reduced number 
+of factors from LoanStatus. They are "Completed", "Current", "Defaulted", 
+"FinalPaymentInProgress", Failed - comprising of "Cancelled", "Chargedoff" 
+and Past Due comprising of "Past Due (>120 days)", "Past Due (1-15 days)", 
+"Past Due (16-30 days)","Past Due (31-60 days)", "Past Due (61-90 days)", 
+"Past Due (91-120 days).
+
+### Of the features you investigated, were there any unusual distributions? \
+
+>I log-transformed the right skewed DebtToIncomeRatio. The tranformed distribution 
+appeared to look more normal, though a bit sqewed to the left with 
+the peak around 0.21 and outlier at 0.41.
+
+>I had to create 2 separate variables  Income and StatusofLoan to deliver a 
+reduced number of Factors by combining those with the close-to-similar meaning.
+Also, I had to subset the data by eliminating records with DebtToIncomeRatio>1, 
+EstimatedReturn<0,  all the records that didn't have BorrowerState information, 
+and those recods that were Closed or Failed as they were not having sufficient information. 
+Also, there were only 10 variables included in this data set.
+
+Variables    | Description  | Levels
+-----------  | ------------ | -----------
+Term: | The length of the loan expressed in months.| N/a
+BorrowerRate: | The Borrower's interest rate for this loan. | N/a
+EstimatedLoss: | Estimated loss is the estimated principal loss on charge-offs.| N/a
+EstimatedReturn: | Estimated return is the difference between the Estimated Effective Yield and the Estimated Loss Rate. Applicable for loans originated after July 2009.| N/a
+BorrowerState: | Factor w/ 52 levels | 51 State
+DebtToIncomeRatio: |The debt to income ratio of the borrower at the time the credit profile was pulled.| N/a
+LoanMonthsSinceOrigination: | Number of months since the loan originated.| N/a
+LoanOriginalAmount: |The origination amount of the loan. | N/a
+Income: | The income range of the borrower at the time the listing was created. | "$0", "$1-24,999", "$25,000-49,999", "$50,000-74,999", "$75,000-99,999","$100,000+"
+StatusOfLoan: | The current status of the loan.|"Completed", "Current", "Defaulted", "FinalPaymentInProgress", "Failed", "Past Due".
+
+>So, the subset dataset is comprising from 84658 observations, 3 Factor and 
+7 numerical variables.
+
+# Bivariate Plots Section
+
+
+```{r   echo=FALSE, warning=FALSE    }
+# Create new variable Status
+lf$Status=lf$EmploymentStatus
+
+# Combine Not available, Not employed, Not Stated into Other
+lf$Status[which(lf$Status == "Not available")] = "Other"
+lf$Status[which(lf$Status == "Not employed")] = "Other"
+lf$Status[which(lf$Status == "Not Stated")] = "Other"
+```
+
+```{r   echo=FALSE, warning=FALSE     }
+# Create new variable Income
+lf$Income=lf$IncomeRange
+
+# Combine Not displayed, Not employed into $0 category
+lf$Income[which(lf$Income == "Not displayed")] = "$0"
+lf$Income[which(lf$Income == "Not employed")] = "$0"
+```
+
+```{r   echo=FALSE, warning=FALSE     }
+# Create new variable StatusofLoan
+lf$StatusofLoan=lf$LoanStatus
+
+# Combine Defaulted, Chargedoff, Cancelled into Failed category
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Defaulted"] = "Failed"
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Chargedoff"] = "Failed"
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Cancelled"] = "Failed"
+
+# Combine Past Due (>120 days), Past Due (1-15 days), Past Due (16-30 days)
+# Past Due (31-60 days), Past Due (61-90 days), Past Due (91-120 days) 
+# into Past Due category
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Past Due (>120 days)"] = "Past Due"
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Past Due (1-15 days)"] = "Past Due"
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Past Due (16-30 days)"] = "Past Due"
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Past Due (31-60 days)"] = "Past Due"
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Past Due (61-90 days)"] = "Past Due"
+levels(lf$StatusofLoan)[levels(lf$StatusofLoan)=="Past Due (91-120 days)"] = "Past Due"
+```
+
+```{r   echo=FALSE, warning=FALSE     }
+# Create a subset of the main data with the variables described above into data set
+# lf_subset_expand
+lf_subset_expand=lf[,c(5,9,12,13,47,62,64,83,18,84)]
+```
+
+```{r   echo=FALSE, warning=FALSE     }
+# Rename all the empty fields under BorrowerState to Not Specified and 
+# then delete them from subset as they don't have info
+levels(lf_subset_expand$BorrowerState)[levels(lf_subset_expand$BorrowerState)==""] = "Not Specified"
+lf_subset_expand=subset(lf_subset_expand, BorrowerState != 'Not Specified')
+```
+
+```{r   echo=FALSE, warning=FALSE     }
+# Keep only those values that don't have StatusofLoan as Failed and 
+# Estimated return as NA
+lf_subset_expand = subset(lf_subset_expand,!(StatusofLoan=="Failed" & 
+                                               is.na(EstimatedReturn)))
+
+# Keep only those values that don't have StatusofLoan as Completed and 
+# Estimated return as NA
+lf_subset_expand = subset(lf_subset_expand,!(StatusofLoan=="Completed" & 
+                                               is.na(EstimatedReturn)))
+
+# Keep only those values that have Estimated return >= 0
+lf_subset_expand=subset(lf_subset_expand, EstimatedReturn >= 0)
+
+# Reorder factors in Income to put them in logical order
+lf_subset_expand$Income = factor(lf_subset_expand$Income,
+                                 levels=c("$0", "$1-24,999", "$25,000-49,999", 
+                                          "$50,000-74,999", "$75,000-99,999",
+                                          "$100,000+"))
+```
+
+```{r   echo=FALSE, warning=FALSE}
+# Fill out all the rest NA in data set with mean values
+for(i in 1:ncol(lf_subset_expand)){
+  lf_subset_expand[is.na(lf_subset_expand[,i]), i] <- mean(lf_subset_expand[,i], na.rm = TRUE)
+}
+```
+
+```{r   echo=FALSE, warning=FALSE }
+# Create a separate data set for correlation matrix that dont have Factor variables
+lf_subset=lf_subset_expand[,c(1:7)]
+
+#Transfer the Term variable to Factor
+lf_subset_expand$Term=factor(lf_subset_expand$Term, levels= c("12", "36", "60"))
+```
+
+```{r   echo=FALSE, warning=FALSE     }
+# Create correlation table
+res<-rcorr(as.matrix(lf_subset))
+signif(res$r, 2)
+```
+
+
+```{r   echo=FALSE, warning=FALSE     }
+# Using psych lib create correlation matrix scatterplot
+ pairs.panels(lf_subset,pch=20)
+```
+
+>From a subset of the data LoanOriginalAmount has moderate corellation with all 
+variables except DebtToIncomeRatio.EstimatedLoss and EstimatedReturn have a good 
+Correlation with BorrowerRate. Though it would be interesting to look at their 
+interaction with other variables such as LoanOriginalAmount, DdebtToIncomeRatio, 
+LoanMonthsSinceOrigination, Term and Income Range. Then it would be interesting
+to look at the same variables distribution per state.
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot BorrowerRate vs. EstimatedLoss scatterplot
+ggplot(aes(x=BorrowerRate, y=EstimatedLoss),data=lf_subset_expand)+ 
+  geom_point()+ scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                 vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate vs. EstimatedLoss scatterplot")
+```
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot BorrowerRate vs. EstimatedLoss scatterplot with log10 scale
+ggplot(aes(x=BorrowerRate, y=EstimatedLoss),data=lf_subset_expand)+ geom_point()+ 
+  scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  scale_y_log10(breaks=seq(0.001,1,0.025))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate vs. EstimatedLoss scatterplot log10")
+```
+
+>It seems that BorrowerRate vs EstimatedLoss has nonlinear relationship (exponential). 
+We have funnel like distribution of EstimatedLoss with increase of BorrowerRate 
+and after logtransforming EstimatedLoss we can see the nonlinear bands where many 
+of BorrowerRate points are following the increase in EstimatedLoss.
+
+```{r   echo=FALSE, warning=FALSE      }
+# Create a stat summary for the relation between EstimatedLoss~BorrowerRate
+summary(lm(formula = EstimatedLoss~BorrowerRate, data = lf_subset_expand))
+```
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot BorrowerRate vs. EstimatedReturn scatterplot 
+ggplot(aes(x=BorrowerRate, y=EstimatedReturn),data=lf_subset_expand)+ 
+  geom_point()+scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  scale_y_continuous(breaks=seq(0,0.4,0.01))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate vs. EstimatedReturn scatterplot")
+```
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot BorrowerRate vs. EstimatedReturn scatterplot with log10 scale
+ggplot(aes(x=BorrowerRate, y=EstimatedReturn),data=lf_subset_expand)+ 
+  geom_point()+scale_y_log10(breaks=seq(0.001,0.3,0.02))+
+  scale_x_continuous(breaks=seq(0,0.4,0.01))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate vs. EstimatedReturn scatterplot log10")
+```
+
+>The same observation could be made on BorrowerRate vs EstimatedReturn. It has 
+nonlinear relationship (exponential).  We have funnel like distribution of 
+EstimatedLoss with increase of BorrowerRate at lower BorrowerRate and after 
+logtransforming EstimatedLoss we can see the nonlinear bands where many of 
+BorrowerRate points are following the increase in EstimatedReturn.
+
+
+```{r   echo=FALSE, warning=FALSE      }
+# Create a stat summary for the relation between EstimatedReturn~BorrowerRate
+summary(lm(formula = EstimatedReturn~BorrowerRate, data = lf_subset_expand))
+```
+
+>Despite the fact that the relationship looks nonlinear, based on the R^2 value, 
+BorrowerRate still explains about 92 percent of the variance in EstimatedLoss 
+and 72 percent in EstimatedReturn. 
+
+
+```{r   echo=FALSE, warning=FALSE      }
+# Create a Plot EstimatedLoss vs. LoanOriginalAmount scatterplot
+p1=ggplot(aes(x=EstimatedLoss, y=LoanOriginalAmount),data=lf_subset_expand)+
+  geom_point(alpha=1/25, position=position_jitter(h=1))+
+  scale_y_continuous(breaks=seq(0,40000,2000))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. LoanOriginalAmount scatterplot")
+```
+
+
+```{r   echo=FALSE, warning=FALSE      }
+# Create a Plot EstimatedReturn vs. LoanOriginalAmount scatterplot
+p2=ggplot(aes(x=EstimatedReturn, y=LoanOriginalAmount),data=lf_subset_expand)+
+  geom_point(alpha=1/25, position=position_jitter(h=1))+
+  scale_y_continuous(breaks=seq(0,40000,2000))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. LoanOriginalAmount scatterplot")
+```
+
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot EstimatedLoss and EstimatedReturn vs. LoanOriginalAmount scatterplot in one
+grid.arrange(p1, p2, ncol=2) 
+```
+
+> When comparing EstimatedLoss and EstimatedReturn to LoanOriginalAmount I had to 
+reduce the overplotting with jitter and transparency level. Most of the EstimatedLoss 
+belongs to the loan amounts of 2000 - 25000.  Most of the EstimatedReturn belongs
+to the loan amounts of 1000 - 25000. Also those two plots are showwing a lack of 
+good correlation between those variables.
+
+
+```{r   echo=FALSE, warning=FALSE      }
+# Create a Plot EstimatedLoss vs. DebtToIncomeRatio scatterplot
+p3=ggplot(aes(y=DebtToIncomeRatio, x=EstimatedLoss),
+          data=subset(lf_subset_expand,DebtToIncomeRatio<=1)) + 
+  geom_point(alpha=1/100, position=position_jitter(h=0))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. DebtToIncomeRatio ")
+```
+```{r   echo=FALSE, warning=FALSE      }
+# Create a Plot EstimatedReturn vs. DebtToIncomeRatio scatterplot
+p4=ggplot(aes(y=DebtToIncomeRatio, x=EstimatedReturn),
+          data=subset(lf_subset_expand,DebtToIncomeRatio<=1))+
+  geom_point(alpha=1/100, position=position_jitter(h=0))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. DebtToIncomeRatio")
+```
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot EstimatedLoss and EstimatedReturn vs. DebtToIncomeRatio scatterplot in one
+grid.arrange(p3, p4, ncol=2) 
+```
+
+> When comparing EstimatedLoss and EstimatedReturn to DebtToIncomeRatio, again  
+I had to reduce the overplotting with jitter and transparency level. Most of the 
+EstimatedLoss belongs to the DebtToIncomeRatio of 0 - 0.6.  Most of the 
+EstimatedReturn belongs to the DebtToIncomeRatio of 0 - 0.55. Also those two plots 
+are showwing a lack of good correlation between those variables. The tall horizontal 
+lines indicate that table values are mostly integers.
+
+
+>Next, lets take a look at how the categorical features vary with BorrowerRate 
+and EstimatedLoss and EstimatedReturn
+
+```{r   echo=FALSE, warning=FALSE  }
+# Create a  BorrowerRate vs. Term boxplot
+p5=ggplot(aes(y=BorrowerRate, x=Term),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Term))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate vs. Term")
+```
+```{r   echo=FALSE, warning=FALSE      }
+# Create a Plot EstimatedLoss vs. Term boxplot
+p6=ggplot(aes(y=EstimatedLoss, x=Term),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Term))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. Term ")
+```
+```{r   echo=FALSE, warning=FALSE      }
+# Create a Plot EstimatedReturn vs. Term boxplot
+p7=ggplot(aes(y=EstimatedReturn, x=Term),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Term))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs.Term")
+```
+
+```{r   echo=FALSE, warning=FALSE      }
+# Plot BorrowerRate, EstimatedLoss and EstimatedReturn vs. Term boxplot in one
+grid.arrange(p5, p6,p7, ncol=3) 
+```
+
+>It is hard to say about the trend between three variables. 
+
+>Term vs. BorrowerRate: It seems that BorrowerRate median is slightly higher for 
+the terms 36 and 60 months and high range for 12 and 36 months periods.
+Term vs. EstimatedReturn: The highest EstimatedReturn median belongs to 36 months 
+Term and the ranges are almost the same except 12 months term is slightly higher.
+Term vs. EstimatedReturn: Seems that we have bunch of outliers for 12 and 36 terms. 
+The median is highest for 36 Term and range tends to be almost the same for all 
+terms except 60 months. that is slightly higher.
+
+```{r   echo=FALSE, warning=FALSE      }
+# Create a  BorrowerRate vs. Income boxplot
+p8=ggplot(aes(y=BorrowerRate, x=Income),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Income))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate vs. Income")
+```
+```{r   echo=FALSE, warning=FALSE      }
+# Create a Plot EstimatedLoss vs. Income boxplot
+p9=ggplot(aes(y=EstimatedLoss, x=Income),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Income))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. Income")
+```
+```{r   echo=FALSE, warning=FALSE      }
+# Create a Plot EstimatedReturn vs. Income boxplot
+p10=ggplot(aes(y=EstimatedReturn, x=Income),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Income))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. Income")
+```
+
+```{r   echo=FALSE, warning=FALSE     }
+# Plot BorrowerRate, EstimatedLoss and EstimatedReturn vs. Income boxplot in one
+grid.arrange(p8, p9,p10, ncol=3) 
+```
+
+
+
+>In plots of BorrowerRate, EstimatedLoss, EstimatedReturn vs. Income the trend 
+becomes more evident. Looks like with the increase of income level all three 
+variables tend to decrease. Its hard to say at this point what is causing this 
+effect.
+
+>Income vs. BorrowerRate: It seems that BorrowerRate median is highest for $0 
+income, although the ranges are the same.
+Income vs. EstimatedLoss: The highest EstimatedLoss median belongs to group with 
+$0 income. The ranges are the same for all levels 
+Income vs. EstimatedReturn: The highest EstimatedReturn median belongs to to 
+group with $0 income. The ranges are the same for all levels except $0 which is 
+slightly lower with lots of outliers. 
+
+
+>Next lets take a look at the distribution of variables in the time period with 
+relation to LoanMonthsSinceOrigination variable
+
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of BorrowerRate vs. LoanMonthsSinceOrigination
+p11=ggplot(aes(y=BorrowerRate,x=LoanMonthsSinceOrigination),data=lf_subset_expand)+
+  geom_boxplot(aes(group = LoanMonthsSinceOrigination))+
+  stat_summary(fun.y=median, geom="line", aes(group=1), color ='red', size=2)  + 
+  stat_summary(fun.y=median, geom="point", color='blue')+
+  scale_x_continuous(breaks=seq(0,100,2),expand=c(0.001, 0))+
+  scale_y_continuous(breaks=seq(0,0.25,0.05),expand=c(0.001, 0))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate vs. LoanMonthsSinceOrigination")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create Median line of BorrowerRate vs. LoanMonthsSinceOrigination
+p12=ggplot(data = aggregate(BorrowerRate ~ LoanMonthsSinceOrigination, data = lf_subset_expand, 
+                        median), aes(x=LoanMonthsSinceOrigination, y =BorrowerRate)) + 
+  geom_point() + geom_line(group=1, size=1, color="red")+
+  scale_x_continuous(breaks=seq(0,100,2),expand=c(0.001, 0))+
+  scale_y_continuous(breaks=seq(0.05,0.30,0.01))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r echo=FALSE, warning=FALSE }
+# plot p11 and p12 together
+grid.arrange(p11, p12, ncol=1) 
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of EstimatedLoss vs. LoanMonthsSinceOrigination
+p13=ggplot(aes(y=EstimatedLoss,x=LoanMonthsSinceOrigination),
+           data=subset(lf_subset_expand, LoanMonthsSinceOrigination <= 56))+
+  geom_boxplot(aes(group = LoanMonthsSinceOrigination))+
+  stat_summary(fun.y=median, geom="line", aes(group=1), color ='red', size=2)  + 
+  stat_summary(fun.y=median, geom="point", color='blue')+
+  scale_x_continuous(breaks=seq(0,100,2),expand=c(0.001, 0))+
+  scale_y_continuous(breaks=seq(0,0.25,0.05),expand=c(0.001, 0))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. LoanMonthsSinceOrigination")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create Median line of EstimatedLoss vs. LoanMonthsSinceOrigination
+p14=ggplot(data = aggregate(EstimatedLoss ~ LoanMonthsSinceOrigination, 
+                            data = subset(lf_subset_expand, LoanMonthsSinceOrigination <= 56), 
+                        median), aes(x=LoanMonthsSinceOrigination, y =EstimatedLoss)) + 
+  geom_point() + geom_line(group=1, size=1, color="red")+
+  scale_x_continuous(breaks=seq(0,100,2),expand=c(0.001, 0))+
+  scale_y_continuous(breaks=seq(0.04,0.12,0.01))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))
+```
+
+```{r echo =FALSE, warning=FALSE }
+# Plot p13 and p14 together
+grid.arrange(p13,p14, ncol=1) 
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of EstimatedReturn vs. LoanMonthsSinceOrigination
+p15=ggplot(aes(y=EstimatedReturn,x=LoanMonthsSinceOrigination),
+           data=subset(lf_subset_expand, LoanMonthsSinceOrigination <= 56))+
+  geom_boxplot(aes(group = LoanMonthsSinceOrigination))+
+  stat_summary(fun.y=median, geom="line", aes(group=1), color ='red', size=2)  + 
+  stat_summary(fun.y=median, geom="point", color='blue')+
+  scale_x_continuous(breaks=seq(0,100,2),expand=c(0.001, 0))+
+  scale_y_continuous(breaks=seq(0,0.25,0.05),expand=c(0.001, 0))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. LoanMonthsSinceOrigination")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create Median line of EstimatedReturn vs. LoanMonthsSinceOrigination
+p16=ggplot(data = aggregate(EstimatedReturn ~ LoanMonthsSinceOrigination, 
+                            data = subset(lf_subset_expand, 
+                                          LoanMonthsSinceOrigination <= 56), 
+                        median), aes(x=LoanMonthsSinceOrigination, 
+                                     y =EstimatedReturn)) + 
+  geom_point() + geom_line(group=1, size=1, color="red")+
+  scale_x_continuous(breaks=seq(0,100,2),expand=c(0.001, 0))+
+  scale_y_continuous(breaks=seq(0.04,0.15,0.01))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))
+```
+
+```{r echo=FALSE, warning=FALSE }
+#Plot p15 and p16 together
+grid.arrange(p15,p16, ncol=1) 
+```
+
+> The data set has no information on the ExpectedLoss and Return past 56 months 
+period. It seems that all the data  recorded for the period after 65th month 
+doesn't continue most of the values as the Loans were Failed to be returned or 
+Completed. Anyways, in the data that we have, It seems that all the values are 
+following the same trend over the months period. From the beginning the variables 
+medians increase with the time, and then around 36 months BorrowerRate and 
+EstimatedReturn slightly drop (this is expected as the 2 loan period ends), though 
+after they ubruptly rise  and hold untill 44 month. The EstimatedLOss also drops 
+dramatically at the same month. Although the highest variation in medians is about 
+7 % it should be noted that the range increases with time.  
+
+
+> And at lust I would like to look at these variables across the states.
+
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of BorrowerRate vs. BorrowerState
+p17=ggplot(data = lf_subset_expand, aes(x=BorrowerState, y =BorrowerRate)) + 
+  geom_boxplot()+
+  stat_summary(fun.y=median, geom="line", aes(group=1), color ='red', size=2)  + 
+  stat_summary(fun.y=median, geom="point", color='blue')+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate vs. BorrowerState")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create Median line of BorrowerRate vs. BorrowerState
+p18=ggplot(data = aggregate(BorrowerRate ~ BorrowerState, data = lf_subset_expand, 
+                        median), aes(x=BorrowerState, y =BorrowerRate)) + 
+  geom_point() + geom_line(group=1, size=1, color="red")+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))
+```
+
+```{r echo=FALSE, warning=FALSE }
+#plot p17 and p18 together
+grid.arrange(p17, p18, ncol=1) 
+```
+
+```{r echo=FALSE , warning=FALSE}
+# Create Boxplot of EstimatedLoss vs. BorrowerState
+p19=ggplot(data = lf_subset_expand, aes(x=BorrowerState, y =EstimatedLoss)) + 
+  geom_boxplot()+
+  stat_summary(fun.y=median, geom="line", aes(group=1), color ='red', size=2)  + 
+  stat_summary(fun.y=median, geom="point", color='blue')+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. BorrowerState")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create Median line of EstimatedLoss vs. BorrowerState
+p20=ggplot(data = aggregate(EstimatedLoss ~ BorrowerState, data = lf_subset_expand, 
+                        median), aes(x=BorrowerState, y =EstimatedLoss)) + 
+  geom_point() + geom_line(group=1, size=1, color="red")+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))
+```
+
+```{r echo=FALSE, warning=FALSE }
+#plot p19 and p20 together
+grid.arrange(p19, p20, ncol=1) 
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of EstimatedReturn vs. BorrowerState
+p21=ggplot(data = lf_subset_expand, aes(x=BorrowerState, y =EstimatedReturn )) + 
+  geom_boxplot()+
+  stat_summary(fun.y=median, geom="line", aes(group=1), color ='red', size=1)  + 
+  stat_summary(fun.y=median, geom="point", color='blue')+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. BorrowerState")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create Median line of EstimatedReturn vs. BorrowerState
+p22=ggplot(data = aggregate(EstimatedReturn ~ BorrowerState, data = lf_subset_expand, 
+                        median), aes(x=BorrowerState, y =EstimatedReturn )) + 
+  geom_point() + geom_line(group=1, size=1, color="red")+
+  scale_y_continuous(breaks = seq(0.08,0.12,0.0025))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Plot p21 and p22 together
+grid.arrange(p21,p22, ncol=1) 
+```
+
+> The variation of medians across states dowsnt difer too much as well as ranges 
+stay the same. For BorrowerRate the variation was in the range of 0.16-0.21, 
+for EstimatedLoss the values are varying from 0.06 to 0.85. The EstimtedReturn 
+is varying in range 0.085 - 0.1. The Highest median BorrowerRate is in AR and MO, 
+the lowest is in DC. The Highest median EstimatedLoss was in AR and MS, lowest in DC.
+The Highest median EstimatedReturn was in AL, lowest in DC, DE, and NM.
+
+
+# Bivariate Analysis
+
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+
+>EstimatedLoss and EstimatedReturn strongly correlates with BorrowerRate.
+
+>As BorroweRate increases, the variance in EstimatedLoss or EstimatedReturn 
+slightly increases. 
+
+>In the plot of the BorrowerRate vs. EstimatedLoss or Return, 
+there are angled bands where many of the loans take on the same BorrowerRate value 
+at different Loss or Returns  BorrowerRate vs EstimatedLoss has nonlinear relationship. 
+We have funnel like distribution of EstimatedLoss with increase of BorrowerRate 
+and after logtransforming EstimatedLoss we can see the nonlinear bands where many 
+of BorrowerRate points are following the increase in EstimatedLoss.
+
+>Based on the the R^2 value, 
+BorrowerRate explains about 92 percent of the variance in EstimatedLoss 
+and 72 percent in EstimatedReturn. Other features of 
+interest can be incorporated into the model to explain the variance in the price.
+
+>It seems that BorrowerRate median is slightly higher for 
+the terms 36 and 60 months and high range for 12 and 36 months periods.
+The highest EstimatedReturn median belongs to 36 month 
+Term and the ranges are almost the same except 12 months term is slightly higher.
+ Seems that we have bunch of outliers for 12 and 36 terms. 
+The median is highest for 36 Term and range tends to be almost the same for all 
+terms except 60 months, that is slightly higher.
+
+
+>In plots of BorrowerRate, EstimatedLoss, EstimatedReturn vs. Income the trend 
+becomes more evident. Looks like with the increase of income level all three 
+variables tend to decrease. Its hard to say at this point what is causing this 
+effect.
+
+>It seems that BorrowerRate median is highest for $0 
+income, although the ranges are the same.
+]The highest EstimatedLoss median belongs to group with 
+$0 income. The ranges are the same for all levels 
+Income vs. EstimatedReturn: The highest EstimatedReturn median belongs to to 
+group with $0 income. The ranges are the same for all levels except $0 which is 
+slightly lower with lots of outliers. 
+
+
+### Did you observe any interesting relationships between the other features \
+
+>It was interesting to see that there is a trend in the median  variations of 
+Studied variables with the LoanMonthsSinceOrigination. Looks like there is a 
+relationship to the term and Income range of the people that took a loan, which 
+makes sense. 
+
+### What was the strongest relationship you found?
+
+>So far the strongest relationships were observed between EastimatedReturn, 
+EstimatedLoss, and BorrowerRate. Although there is the other trend seen in 
+relation to Income range and Term of the loan. Either Income or LoanMonthsSinceOrigination 
+could be used in a model to predict the EstimatedLOss or Return, however, both 
+variables should not be used since they are measuring the same numerical quality 
+and show perfect correlation.
+
+# Multivariate Plots Section
+
+
+```{r echo=FALSE, warning=FALSE }
+# Create density plot of BorrowerRate, colored by Income range
+p23=ggplot(aes(x=BorrowerRate, color=Income),data=lf_subset_expand)+
+  geom_density()+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate, by Income ")
+```
+```{r echo=FALSE , warning=FALSE}
+# Create density plot of EstimatedLoss, colored by Income range
+p24=ggplot(aes(x=EstimatedLoss, color=Income),data=lf_subset_expand)+
+  geom_density()+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss, by Income ")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create density plot of EstimatedReturn, colored by Income range
+p25=ggplot(aes(x=EstimatedReturn, color=Income),data=lf_subset_expand)+
+  geom_density()+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn, by Income")
+```
+
+```{r echo=FALSE, warning=FALSE }
+#Plot p23,p24,p25 together
+grid.arrange(p23,p24,p25, ncol=1) 
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Create density plot of BorrowerRate, colored by Term range
+p26=ggplot(aes(x=BorrowerRate, color=Term),data=lf_subset_expand)+
+  geom_density()+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="BorrowerRate by Term")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create density plot of EstimatedLoss, colored by Term range
+p27=ggplot(aes(x=EstimatedLoss, color=Term),data=lf_subset_expand)+
+  geom_density()+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss by Term")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create density plot of EstimatedReturn, colored by Term range
+p28=ggplot(aes(x=EstimatedReturn, color=Term),data=lf_subset_expand)+
+  geom_density()+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn by Term")
+```
+
+```{r echo=FALSE, warning=FALSE }
+#Plot p26,p27,p28 together
+grid.arrange(p26,p27,p28, ncol=1) 
+```
+ 
+>These density plots elaborate on the odd trends that were seen in the box plots 
+earlier. Lowest income range loans tend to have higher values for BorrowerRate, 
+EstimatedLoss and Return. While the highest level of income range loans have the 
+lowest BorrowerRate, EstimatedReturn and Loss. The highest BorrowersRate is <30% 
+for the loans of 36 months. Most of EstimatedLoss comes from loans for 60 months. 
+The highest of EstimatedReturn is coming from 12 months loans.
+
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of EstimatedLoss/BorrowerRate vs. Income 
+p29=ggplot(aes(y=EstimatedLoss/BorrowerRate, x=Income, fill=Income),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Income))+
+  scale_fill_brewer(type = 'seq',palette='YlOrBr',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 1)))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss/BorrowerRate vs. Income")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of EstimatedReturn/BorrowerRate vs. Income 
+p30=ggplot(aes(y=EstimatedReturn/BorrowerRate, x=Income, fill=Income),
+           data=lf_subset_expand)+geom_boxplot(aes(group = Income))+
+  scale_fill_brewer(type = 'seq',palette='YlOrBr',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 1)))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn/BorrowerRate vs. Income")
+```
+
+```{r echo=FALSE, warning=FALSE }
+#Plot p29,p30 together
+grid.arrange(p29,p30, ncol=2) 
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Calculate stats for the Income groups for EstimatedLoss/BorrowerRate
+by(lf_subset_expand$EstimatedLoss/lf_subset_expand$BorrowerRate,
+   lf_subset_expand$Income, summary)
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Calculate stats for the Income groups for Estimatedreturn/BorrowerRate
+by(lf_subset_expand$EstimatedReturn/lf_subset_expand$BorrowerRate,
+   lf_subset_expand$Income, summary)
+```
+
+>Seems that  EstimatedLoss/BorrowerRate highest median belongs to the lowest 
+level of Income EstimatedReturn/BorrowerRate highest median belongs to the 
+highest level of Income. 
+
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of EstimatedLoss/BorrowerRate vs. Term
+p31=ggplot(aes(y=EstimatedLoss/BorrowerRate, x=Term),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Term))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss/BorrowerRate vs. Term")
+```
+```{r echo=FALSE, warning=FALSE }
+# Create Boxplot of EstimatedReturn/BorrowerRate vs. Term
+p32=ggplot(aes(y=EstimatedReturn/BorrowerRate, x=Term),data=lf_subset_expand)+
+  geom_boxplot(aes(group = Term))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn/BorrowerRate vs. Term")
+```
+
+```{r echo=FALSE, warning=FALSE }
+#Plot p31,p32 together
+grid.arrange(p31,p32, ncol=2) 
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Calculate stats for the Term groups for EstimatedLoss/BorrowerRate
+by(lf_subset_expand$EstimatedLoss/lf_subset_expand$BorrowerRate,
+   lf_subset_expand$Term, summary)
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Calculate stats for the Term groups for EstimatedReturn/BorrowerRate
+by(lf_subset_expand$EstimatedReturn/lf_subset_expand$BorrowerRate,
+   lf_subset_expand$Term, summary)
+```
+
+>Seems that  EstimatedLoss/BorrowerRate highest median belongs to the shortest 
+loan term EstimatedReturn/BorrowerRate highest median belongs to the longest 
+loan term.
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedLoss vs. LoanOriginalAmount with color Term
+ggplot(aes(x=EstimatedLoss, y=LoanOriginalAmount, color=Term),data=lf_subset_expand)+
+  geom_point( position=position_jitter(h=1))+
+  scale_color_brewer(type = 'seq',palette='YlOrBr',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+  scale_y_continuous(breaks=seq(0,40000,4000))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. LoanOriginalAmount by Term")
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedLoss vs. LoanOriginalAmount with color and facet Term
+ggplot(aes(x=EstimatedLoss, y=LoanOriginalAmount, color=Term),data=lf_subset_expand)+
+  geom_point( position=position_jitter(h=1))+
+  scale_y_continuous(breaks=seq(0,40000,4000))+
+  scale_color_brewer(type = 'seq',palette='YlOrBr',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+  facet_wrap(~Income)+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. LoanOriginalAmount by facet Term")
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedReturn vs. LoanOriginalAmount with color Term
+ggplot(aes(x=EstimatedReturn, y=LoanOriginalAmount, color=Term),data=lf_subset_expand)+
+  geom_point( position=position_jitter(h=1))+
+  scale_color_brewer(type = 'seq',palette='Greens',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+  scale_y_continuous(breaks=seq(0,40000,4000))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. LoanOriginalAmount by Term")
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedReturn vs. LoanOriginalAmount with color and facet Term
+ggplot(aes(x=EstimatedReturn, y=LoanOriginalAmount, color=Term),data=lf_subset_expand)+
+  geom_point(position=position_jitter(h=1))+
+  scale_y_continuous(breaks=seq(0,40000,4000))+
+  scale_x_continuous(breaks=seq(0,0.25,0.05))+
+  scale_color_brewer(type = 'seq',palette='Greens',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+  facet_wrap(~Income)+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. LoanOriginalAmount by facet Term")
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedLoss vs. DebtToIncomeRAtio with color Term
+ggplot(aes(y=DebtToIncomeRatio, x=EstimatedLoss, color=Term),
+       data=subset(lf_subset_expand,DebtToIncomeRatio<=1)) + 
+  geom_point( position=position_jitter(h=0))+
+  scale_color_brewer(type = 'seq',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. DebtToIncomeRAtio by Term")
+```
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedLoss vs. DebtToIncomeRatio with color and facet Term
+ggplot(aes(x=EstimatedLoss, y=DebtToIncomeRatio, color=Term),
+       data=subset(lf_subset_expand,DebtToIncomeRatio<=1))+
+  geom_point( position=position_jitter(h=0))+
+  scale_y_continuous(breaks=seq(0,1,0.1))+
+  scale_x_continuous(breaks=seq(0,0.25,0.05))+
+  scale_color_brewer(type = 'seq',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. DebtToIncomeRatio by facet Term")
+```
+
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedReturn vs. DebtToIncomeRatio with color Term
+ggplot(aes(y=DebtToIncomeRatio, x=EstimatedReturn,color=Term),
+       data=subset(lf_subset_expand,DebtToIncomeRatio<=1))+ 
+  geom_point( position=position_jitter(h=0))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. DebtToIncomeRatio by Term")
+```
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedReturn vs. DebtToIncomeRatio with color and facet Term
+ggplot(aes(x=EstimatedReturn, y=DebtToIncomeRatio, color=Term),
+       data=subset(lf_subset_expand,DebtToIncomeRatio<=1))+
+  geom_point( position=position_jitter(h=0))+
+  scale_y_continuous(breaks=seq(0,1,0.1))+
+  scale_x_continuous(breaks=seq(0,0.25,0.05))+
+  facet_wrap(~Income)+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. DebtToIncomeRatio by facet Term")
+```
+
+>Levels of cut cluster by table value. This may make sense based on the type of
+cut as certain cuts produce certain dimensions. The pattern generally holds 
+across each level of clarity and each level of color with the exception of the
+lowest clarity.
+
+
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedLoss vs. BorrowerRate with color Term
+ggplot(aes(x=BorrowerRate, y=EstimatedLoss,color=Term),data=lf_subset_expand)+ 
+  geom_point()+ scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  scale_y_log10(breaks=seq(0.001,1,0.025))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. BorrowerRate by Term")
+```
+
+```{r echo=FALSE, warning=FALSE  }
+# Plot a scatter plot EstimatedReturn vs. BorrowerRate with color Term
+ggplot(aes(x=BorrowerRate, y=EstimatedReturn,color=Term),data=lf_subset_expand)+ 
+  geom_point()+ scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  scale_y_log10(breaks=seq(0.001,1,0.025))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. BorrowerRate by Term")
+```
+
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedLoss vs. BorrowerRate with color Income
+ggplot(aes(x=BorrowerRate, y=EstimatedLoss,color=Income),data=lf_subset_expand)+
+  geom_point()+ scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  scale_y_log10(breaks=seq(0.001,1,0.025))+
+  scale_color_brewer(type = 'seq',palette='green',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedLoss vs. BorrowerRate by Income")
+```
+
+
+
+```{r echo=FALSE, warning=FALSE }
+# Plot a scatter plot EstimatedReturn vs. BorrowerRate with color Income
+ggplot(aes(x=BorrowerRate, y=EstimatedReturn,color=Income),data=lf_subset_expand)+ 
+  geom_point()+ scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  scale_y_log10(breaks=seq(0.001,1,0.025))+
+  scale_color_brewer(type = 'seq',palette='green',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)), 
+                                 plot.title = element_text(hjust = 0.5))+
+  labs(title="EstimatedReturn vs. BorrowerRate with color Income")
+```
+
+>Loans for high income borrowers tend to have lower borrowerRate and EsstimatedReturn.
+The Pattern is not that noticable at plot of EstimatedLoss vs. BorrowerRate. 
+We  have a clustered distribution that should be investigated further.
+
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \Were 
+there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+Seems that  EstimatedLoss/BorrowerRate highest median belongs to the lowest 
+level of Income. EstimatedReturn/BorrowerRate highest median belongs to the highest 
+level of Income. 
+
+Also, EstimatedLoss/BorrowerRate highest median belongs to the shortest loan term.
+And, EstimatedReturn/BorrowerRate highest median belongs to the longest loan term.
+The variance across the groups seems to be about the same.
+
+### Were there any interesting or surprising interactions between features?
+Levels of EstimatedLoss and Return cluster by LoanOriginalAmount. It seems that 
+all the higheh loan amounts are given to the borrowers with higher income rate. 
+This is expected Though needs more investigation in terms of subdivision of 
+income rate groups and working on each separately.
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the \
+
+There was no model created as more work needed on understanding domain knowledge of  
+EstimatedLoss and Return vs BorrowerRate.
+
+------
+
+# Final Plots and Summary
+### Plot One
+```{r   echo=FALSE, warning=FALSE, Plot_One}
+#Create BorrowerRate histogram
+p33=ggplot(aes(x=BorrowerRate), data = lf_subset_expand)+ geom_histogram(binwidth = 0.0025)+
+  labs(title="Borrower Rate distribution",
+        x ='Borrower Rate (in fractions)', y = "Number of Loans")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  scale_x_continuous(breaks = seq(-0.2,0.3, 0.05))
+
+#Create EstimatedLoss histogram
+p34=ggplot(aes(x=EstimatedLoss), data = lf_subset_expand)+ geom_histogram(binwidth = 0.0025)+
+  labs(title="Estimated Loss distribution",
+        x ='Estimated Loss (in fractions)', y = "Number of Loans")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  scale_x_continuous(breaks = seq(-0.2,0.3, 0.05))
+
+#Create EstimatedReturn histogram
+p35=ggplot(aes(x=EstimatedReturn), data = lf_subset_expand)+ geom_histogram(binwidth = 0.0025)+
+  labs(title="Estimated Return distribution",
+        x ='Estimated Return (in fractions)', y = "Number of Loans")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  scale_x_continuous(breaks = seq(-0.2,0.3, 0.05))
+```
+
+```{r echo=FALSE, warning=FALSE }
+# Plot p33,p34,p35 together
+grid.arrange(p33,p34,p35,  ncol=2) 
+```
+
+### Description One
+>The distribution of BorrowerRate appears to be normally distributed with the 
+outliers around 0.32. EstimatedLoss as well as EstimatedReturn appears to be trimodal, 
+perhaps due to the 3 diffrent terms these loans were opened. 
+
+### Plot Two
+```{r   echo=FALSE, warning=FALSE, Plot_Two}
+#Create EstimatedLoss/BorrowerRate, color=Income density plot
+p36=ggplot(aes(x=EstimatedLoss/BorrowerRate, color=Income),data=lf_subset_expand)+
+  geom_density() +
+  scale_color_brewer(type = 'seq',palette='YlOrBr',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+ theme(legend.position="none",axis.text.x=element_blank())
+
+#Create EstimatedReturn/BorrowerRate, color=Income density plot
+p37=ggplot(aes(x=EstimatedReturn/BorrowerRate, color=Income),data=lf_subset_expand)+
+  geom_density() +
+  scale_color_brewer(type = 'seq',palette='YlOrBr',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+ theme(legend.position="none")
+
+#Plot p29,p36,p30, p37 together 
+grid.arrange(p29+ theme(legend.position="none", axis.text.x=element_blank()),p36,p30+ theme(legend.position="none"),p37, ncol=2, top="Relations between BorrowerRate, EstimatedLoss, EstimatedReturn and Income") 
+```
+
+### Description Two
+
+> The borrowers with the income range of $0 have the lowest median EstimatedReturn 
+and the highest EstimatedLoss. Meanwhile the borrowers with the income range of 
+$100,000+ have completely opposite means.
+
+```{r   echo=FALSE, warning=FALSE, Plot_Three}
+# Create EstimatedLoss vs. BorrowerRate scatter plot with log10 scale and Color Income
+p38=ggplot(aes(x=BorrowerRate, y=EstimatedLoss,color=Income),data=lf_subset_expand)+ 
+  geom_point()+ scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  scale_y_log10(breaks=seq(0.01,0.3,0.05))+
+  scale_color_brewer(type = 'seq',palette='Greens',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)))+
+  labs(y ='Estimated Loss (in fractions)', x = "Borrower Rate (in fractions)")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Create EstimatedReturn vs. BorrowerRate scatter plot with log10 scale and Color Income
+p39=ggplot(aes(x=BorrowerRate, y=EstimatedReturn,color=Income),data=lf_subset_expand)+ 
+  geom_point()+ scale_x_continuous(breaks=seq(0,0.4,0.01))+
+  scale_y_log10(breaks=seq(0.01,0.3,0.05))+
+  scale_color_brewer(type = 'seq',palette='Greens',guide = guide_legend( reverse = T,
+    override.aes = list(alpha = 1, size = 2)))+
+    theme(axis.text.x=element_text(angle = 90, hjust = 1, size = 8, 
+                                   vjust=0.5, margin=margin(0,0,0,15)))+
+  labs(y ='Estimated Return (in fractions)', x = "Borrower Rate (in fractions)")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r echo=FALSE , warning = FALSE }
+#Plot p38 and p39 together
+grid.arrange(p38,p39,  ncol=1, top="Estimated Loss and Return by Borrower Rate and 
+             Income range") 
+```
+
+### Description Three
+
+The plot indicates that a model could be constructed to predict the price of 
+variables using EstimatedLoss and Return as the outcome variables Borrower Rate 
+as a predictor variable. 
+
+------
+
+# Reflection
+The Prospect loan data set contains information on almost 114,000 loans across 
+85 variables from around 2005 to 2014 years. I started by understanding the 
+individual variables in the data set, and then I explored interesting questions 
+and leads as I continued to make observations on plots. Eventually, I explored 
+EstimatedLoss and EstimatedReturn across many variables. The next step would be 
+understanging of these relationships with the domain knowledge to build a working 
+model to predict Return and Loss within the new loans. As BorroweRate increases, 
+the variance in EstimatedLoss or EstimatedReturn slightly increases. BorrowerRate 
+vs EstimatedLoss has nonlinear relationship. 
+
+We have funnel like distribution of EstimatedLoss with increase of BorrowerRate 
+and after logtransforming EstimatedLoss we can see the nonlinear bands where many 
+of BorrowerRate points are following the increase in EstimatedLoss.
+
+Based on the the R^2 value, BorrowerRate explains about 92 percent of the 
+variance in EstimatedLoss and 72 percent in EstimatedReturn. Other features of
+interest can be incorporated into the model to explain the variance in the price.
+
+
+There was a clear trend between Borrower Rate and EstimatedLoss and EstimatedReturn 
+observed. I was surpised to see that the Original loan amount or term didn't have 
+strong positive correlation with Loss or Return. Without the domain knowledge it 
+is  hard to understatnd the linear pattern of distribution of variables though 
+transformation into log scale helped a bit. It is still recomended to conduct 
+a more indepth EDA to understand the relationships between the variables within 
+the Income groups.
+
+FURTHER WORK: Understand the domain logics of how the EstimatedLOss and Return 
+are calculated. Subdivide the borrowers by groups depending on the income and 
+then study them separately, as it seems that Loss is affected more by other 
+relationships then the Return that correlates to loan Terms.
